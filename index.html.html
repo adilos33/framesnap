@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>FrameSnap</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+:root {
+  --bg: #0d0d16;
+  --card: #161625;
+  --card2: #1e1e30;
+  --accent: #ff6b35;
+  --accent2: #ff9a5c;
+  --blue: #4f8ef7;
+  --green: #2ecc71;
+  --text: #f5f5ff;
+  --muted: #7070a0;
+  --border: rgba(255,255,255,0.08);
+  --r: 20px;
+}
+html, body {
+  font-family: 'Tajawal', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  overflow-x: hidden;
+}
+body::before {
+  content:''; position:fixed; inset:0; z-index:0;
+  background:
+    radial-gradient(ellipse 70% 40% at 80% 10%, rgba(255,107,53,0.08) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 50% at 10% 90%, rgba(79,142,247,0.07) 0%, transparent 60%);
+  pointer-events:none;
+}
+.wrap { position:relative; z-index:1; padding-bottom:40px; }
+
+/* HEADER */
+.header { padding:50px 20px 20px; text-align:center; }
+.header-icon {
+  width:72px; height:72px;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  border-radius:22px;
+  display:inline-flex; align-items:center; justify-content:center;
+  font-size:36px;
+  box-shadow:0 12px 40px rgba(255,107,53,0.35);
+  margin-bottom:14px;
+  animation:bounce 2.5s ease-in-out infinite;
+}
+.header h1 {
+  font-size:28px; font-weight:900;
+  background:linear-gradient(135deg,#fff 40%,var(--accent2));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  background-clip:text; margin-bottom:6px;
+}
+.header p { color:var(--muted); font-size:14px; }
+
+/* STEPS */
+.steps { display:flex; justify-content:center; gap:6px; margin:0 20px 24px; }
+.step-dot { height:4px; border-radius:100px; background:var(--card2); transition:all .3s; flex:1; max-width:60px; }
+.step-dot.active { background:var(--accent); }
+.step-dot.done { background:var(--green); }
+
+/* TIP */
+.tip {
+  margin:0 16px 16px;
+  background:rgba(79,142,247,0.08);
+  border:1px solid rgba(79,142,247,0.2);
+  border-radius:var(--r); padding:16px 18px;
+}
+.tip p { font-size:13px; color:#a0b4e0; line-height:1.8; }
+.tip strong { color:var(--blue); }
+
+/* CARD */
+.card {
+  margin:0 16px 14px;
+  background:var(--card); border-radius:var(--r);
+  border:1px solid var(--border); overflow:hidden;
+  animation:fadeUp .4s ease both;
+}
+.card-head {
+  padding:16px 20px; border-bottom:1px solid var(--border);
+  display:flex; align-items:center; gap:10px;
+}
+.cnum {
+  width:28px; height:28px;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  border-radius:8px; display:flex; align-items:center; justify-content:center;
+  font-size:13px; font-weight:900; color:#fff; flex-shrink:0;
+}
+.cnum.g { background:var(--green); }
+.ctitle { font-size:15px; font-weight:800; }
+.csub { font-size:12px; color:var(--muted); margin-top:1px; }
+.card-body { padding:20px; }
+
+/* FILE BUTTONS */
+.file-btn {
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  width:100%; padding:16px; border-radius:14px;
+  font-family:'Tajawal',sans-serif; font-size:15px; font-weight:800;
+  cursor:pointer; transition:all .15s; margin-bottom:10px;
+  border:2px dashed rgba(255,107,53,0.4);
+  background:rgba(255,107,53,0.06); color:var(--accent);
+  -webkit-appearance:none;
+}
+.file-btn:active { transform:scale(0.97); background:rgba(255,107,53,0.12); }
+.file-btn.blue {
+  border-color:rgba(79,142,247,0.4);
+  background:rgba(79,142,247,0.06); color:var(--blue);
+}
+.file-btn.blue:active { background:rgba(79,142,247,0.12); }
+input[type=file] { position:absolute; opacity:0; width:1px; height:1px; pointer-events:none; }
+
+.or { display:flex; align-items:center; gap:10px; color:var(--muted); font-size:13px; margin:4px 0 10px; }
+.or::before,.or::after { content:''; flex:1; height:1px; background:var(--border); }
+
+/* VIDEO */
+.video-player { width:100%; border-radius:12px; background:#000; display:block; max-height:230px; }
+.meta-row { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+.mtag { background:var(--card2); border:1px solid var(--border); border-radius:8px; padding:4px 12px; font-size:12px; color:var(--muted); }
+.mtag b { color:var(--accent); }
+
+/* SETTINGS */
+.sg { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px; }
+.sf { display:flex; flex-direction:column; gap:6px; }
+.sf label { font-size:12px; color:var(--muted); font-weight:700; }
+.sf select {
+  background:var(--card2); border:1.5px solid var(--border);
+  border-radius:12px; color:var(--text);
+  padding:10px 12px; font-family:'Tajawal',sans-serif;
+  font-size:13px; outline:none; -webkit-appearance:none;
+  transition:border-color .2s;
+}
+.sf select:focus { border-color:var(--accent); }
+
+/* BUTTONS */
+.btn {
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  width:100%; padding:16px; border-radius:14px; border:none;
+  font-family:'Tajawal',sans-serif; font-size:16px; font-weight:800;
+  cursor:pointer; transition:all .15s; -webkit-appearance:none;
+}
+.btn:active { transform:scale(0.97); }
+.btn:disabled { opacity:.45; }
+.btn-o { background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff; box-shadow:0 8px 28px rgba(255,107,53,0.35); }
+.btn-g { background:var(--green); color:#fff; box-shadow:0 8px 28px rgba(46,204,113,0.3); }
+.btn-ghost { background:var(--card2); color:var(--text); border:1px solid var(--border); }
+.btn-sm { padding:12px; font-size:14px; }
+.brow { display:flex; gap:10px; margin-bottom:14px; }
+.brow .btn { flex:1; }
+
+/* PROGRESS */
+.pi { display:flex; justify-content:space-between; margin-bottom:10px; font-size:14px; }
+.pt { background:var(--card2); border-radius:100px; height:10px; overflow:hidden; }
+.pb {
+  height:100%; width:0%;
+  background:linear-gradient(90deg,var(--accent),var(--accent2));
+  border-radius:100px; transition:width .3s;
+  position:relative; overflow:hidden;
+}
+.pb::after {
+  content:''; position:absolute; inset:0;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.25),transparent);
+  animation:shimmer 1.5s infinite;
+}
+.psub { text-align:center; margin-top:10px; font-size:13px; color:var(--muted); }
+
+/* GRID */
+.grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+.fc {
+  border-radius:12px; overflow:hidden;
+  background:var(--card2); border:1px solid var(--border);
+  cursor:pointer; transition:transform .15s; position:relative;
+}
+.fc:active { transform:scale(0.94); }
+.fc img { width:100%; aspect-ratio:16/9; object-fit:cover; display:block; }
+.ftime {
+  position:absolute; bottom:4px; right:5px;
+  background:rgba(0,0,0,0.7); color:#fff;
+  font-size:10px; font-weight:700; padding:2px 6px; border-radius:5px;
+}
+
+canvas { display:none; }
+
+@keyframes fadeUp { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+@keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+@keyframes shimmer { from{transform:translateX(-100%)} to{transform:translateX(200%)} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="header">
+    <div class="header-icon">🎞️</div>
+    <h1>FrameSnap</h1>
+    <p>استخرج الصور من الفيديو على iPhone</p>
+  </div>
+
+  <div class="steps">
+    <div class="step-dot active" id="d1"></div>
+    <div class="step-dot" id="d2"></div>
+    <div class="step-dot" id="d3"></div>
+  </div>
+
+  <div class="tip">
+    <p>
+      📥 <strong>خطوة مهمة قبل البدء:</strong><br>
+      افتح <strong>cobalt.tools</strong> في Safari ← الصق رابط YouTube ← اضغط Download ← اختر <strong>"Save to Files"</strong> (ليس Save to Photos)<br><br>
+      ثم ارجع هنا واضغط <strong>"اختر من الملفات"</strong> 👇
+    </p>
+  </div>
+
+  <!-- STEP 1 -->
+  <div class="card">
+    <div class="card-head">
+      <div class="cnum" id="n1">1</div>
+      <div>
+        <div class="ctitle">اختر الفيديو</div>
+        <div class="csub">من الملفات أو مكتبة الصور</div>
+      </div>
+    </div>
+    <div class="card-body">
+
+      <label class="file-btn" for="f1">
+        📁 اختر من الملفات (Files) — الأفضل
+      </label>
+      <input type="file" id="f1" accept="video/mp4,video/quicktime,video/x-m4v,video/*,.mp4,.mov,.m4v">
+
+      <div class="or">أو</div>
+
+      <label class="file-btn blue" for="f2">
+        🖼️ اختر من مكتبة الصور (Photos)
+      </label>
+      <input type="file" id="f2" accept="video/*">
+
+    </div>
+  </div>
+
+  <!-- STEP 2: Video -->
+  <div class="card" id="vcard" style="display:none">
+    <div class="card-head">
+      <div class="cnum" id="n2">2</div>
+      <div>
+        <div class="ctitle">الفيديو محمّل ✅</div>
+        <div class="csub" id="vname">—</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <video id="vel" controls playsinline webkit-playsinline muted class="video-player"></video>
+      <div class="meta-row">
+        <span class="mtag">المدة: <b id="vdur">—</b></span>
+        <span class="mtag">الحجم: <b id="vsz">—</b></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 3: Settings -->
+  <div class="card" id="scard" style="display:none">
+    <div class="card-head">
+      <div class="cnum" id="n3">3</div>
+      <div>
+        <div class="ctitle">إعدادات الاستخراج</div>
+        <div class="csub">اختر ثم ابدأ</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="sg">
+        <div class="sf">
+          <label>معدل الاستخراج</label>
+          <select id="fps">
+            <option value="2">كل 2 ثانية</option>
+            <option value="1" selected>كل ثانية</option>
+            <option value="0.5">مرتان/ثانية</option>
+            <option value="0.2">5/ثانية</option>
+          </select>
+        </div>
+        <div class="sf">
+          <label>جودة الصورة</label>
+          <select id="qual">
+            <option value="0.95">عالية جداً</option>
+            <option value="0.85" selected>عالية</option>
+            <option value="0.70">متوسطة</option>
+          </select>
+        </div>
+        <div class="sf">
+          <label>صيغة الحفظ</label>
+          <select id="fmt">
+            <option value="image/jpeg">JPEG</option>
+            <option value="image/png">PNG</option>
+          </select>
+        </div>
+        <div class="sf">
+          <label>أقصى عدد للصور</label>
+          <select id="maxf">
+            <option value="50">50 صورة</option>
+            <option value="100" selected>100 صورة</option>
+            <option value="200">200 صورة</option>
+            <option value="500">500 صورة</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-o" id="exbtn" onclick="extract()">🚀 ابدأ استخراج الصور</button>
+    </div>
+  </div>
+
+  <!-- Progress -->
+  <div class="card" id="pcard" style="display:none">
+    <div class="card-body">
+      <div class="pi"><span id="plbl">جاري المعالجة...</span><span id="ppct">0%</span></div>
+      <div class="pt"><div class="pb" id="pbar"></div></div>
+      <div class="psub" id="ptxt">يرجى الانتظار...</div>
+      <div style="margin-top:14px"><button class="btn btn-ghost btn-sm" onclick="doCancel()">❌ إلغاء</button></div>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="card" id="rcard" style="display:none">
+    <div class="card-head">
+      <div class="cnum g">✓</div>
+      <div>
+        <div class="ctitle">الصور جاهزة!</div>
+        <div class="csub" id="rcnt">—</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="brow">
+        <button class="btn btn-g btn-sm" onclick="dlZip()">⬇️ تحميل الكل ZIP</button>
+        <button class="btn btn-ghost btn-sm" onclick="reset()">🔄 فيديو جديد</button>
+      </div>
+      <div class="grid" id="grid"></div>
+    </div>
+  </div>
+
+</div>
+<canvas id="cvs"></canvas>
+
+<script>
+let frames=[], cancelled=false;
+const vel=document.getElementById('vel');
+const cvs=document.getElementById('cvs');
+const cx=cvs.getContext('2d');
+
+function loadFile(file){
+  if(!file) return;
+  const isVideo = file.type.startsWith('video/') || /\.(mp4|mov|m4v|avi|mkv|webm)$/i.test(file.name);
+  if(!isVideo){ alert('الرجاء اختيار ملف فيديو (MP4 أو MOV)'); return; }
+  vel.src=URL.createObjectURL(file);
+  vel.load();
+  vel.onloadedmetadata=()=>{
+    document.getElementById('vname').textContent=file.name.slice(0,28)+(file.name.length>28?'…':'');
+    document.getElementById('vdur').textContent=ft(vel.duration);
+    document.getElementById('vsz').textContent=fs(file.size);
+    show('vcard'); show('scard');
+    step(2);
+  };
+  vel.onerror=()=>{
+    alert('⚠️ تعذّر تحميل الفيديو\n\nتأكد من:\n• حفظ الفيديو بصيغة MP4\n• اختياره من تطبيق الملفات وليس الصور');
+  };
+}
+
+document.getElementById('f1').onchange=e=>loadFile(e.target.files[0]);
+document.getElementById('f2').onchange=e=>loadFile(e.target.files[0]);
+
+async function extract(){
+  cancelled=false; frames=[];
+  document.getElementById('grid').innerHTML='';
+  hide('rcard'); show('pcard');
+  document.getElementById('exbtn').disabled=true;
+  step(3);
+
+  const stepT=parseFloat(document.getElementById('fps').value);
+  const q=parseFloat(document.getElementById('qual').value);
+  const fmt=document.getElementById('fmt').value;
+  const maxF=parseInt(document.getElementById('maxf').value);
+  const ext=fmt==='image/png'?'png':'jpg';
+  const dur=vel.duration;
+
+  let ts=[];
+  for(let t=0;t<=dur;t+=stepT) ts.push(parseFloat(t.toFixed(2)));
+  if(ts.length>maxF){
+    const sk=Math.ceil(ts.length/maxF);
+    ts=ts.filter((_,i)=>i%sk===0);
+  }
+
+  for(let i=0;i<ts.length;i++){
+    if(cancelled) break;
+    await seekCapture(ts[i],q,fmt,ext);
+    const p=Math.round(((i+1)/ts.length)*100);
+    document.getElementById('pbar').style.width=p+'%';
+    document.getElementById('ppct').textContent=p+'%';
+    document.getElementById('ptxt').textContent=`${i+1} من ${ts.length} إطار`;
+  }
+
+  hide('pcard');
+  document.getElementById('exbtn').disabled=false;
+  if(!cancelled&&frames.length) showRes();
+}
+
+function seekCapture(t,q,fmt,ext){
+  return new Promise(res=>{
+    vel.addEventListener('seeked',function h(){
+      cvs.width=vel.videoWidth||640;
+      cvs.height=vel.videoHeight||360;
+      cx.drawImage(vel,0,0);
+      frames.push({url:cvs.toDataURL(fmt,q),time:t,ext});
+      vel.removeEventListener('seeked',h);
+      res();
+    },{once:true});
+    vel.currentTime=t;
+  });
+}
+
+function showRes(){
+  document.getElementById('rcnt').textContent=`${frames.length} صورة — اضغط على أي صورة لتحميلها`;
+  const g=document.getElementById('grid');
+  g.innerHTML='';
+  frames.forEach((f,i)=>{
+    const d=document.createElement('div');
+    d.className='fc';
+    d.innerHTML=`<img src="${f.url}" loading="lazy"><div class="ftime">${ft(f.time)}</div>`;
+    d.onclick=()=>dlOne(f,i+1);
+    g.appendChild(d);
+  });
+  show('rcard');
+  document.getElementById('rcard').scrollIntoView({behavior:'smooth'});
+}
+
+function dlOne(f,n){
+  const a=document.createElement('a');
+  a.href=f.url; a.download=`frame_${String(n).padStart(3,'0')}.${f.ext}`; a.click();
+}
+
+async function dlZip(){
+  const b=event.target; b.textContent='⏳ جاري الضغط...'; b.disabled=true;
+  const zip=new JSZip(), folder=zip.folder('frames');
+  frames.forEach((f,i)=>folder.file(`frame_${String(i+1).padStart(3,'0')}.${f.ext}`,f.url.split(',')[1],{base64:true}));
+  const blob=await zip.generateAsync({type:'blob'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='frames.zip'; a.click();
+  b.textContent='⬇️ تحميل الكل ZIP'; b.disabled=false;
+}
+
+function doCancel(){ cancelled=true; hide('pcard'); document.getElementById('exbtn').disabled=false; }
+
+function reset(){
+  doCancel(); frames=[];
+  vel.src=''; hide('vcard'); hide('scard'); hide('rcard'); hide('pcard');
+  step(1);
+  document.getElementById('f1').value='';
+  document.getElementById('f2').value='';
+}
+
+function show(id){ document.getElementById(id).style.display='block'; }
+function hide(id){ document.getElementById(id).style.display='none'; }
+function step(n){
+  [1,2,3].forEach(i=>{
+    document.getElementById('d'+i).className='step-dot'+(i<n?' done':i===n?' active':'');
+  });
+}
+function ft(s){ return `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`; }
+function fs(b){ return b>1e6?(b/1e6).toFixed(1)+' MB':(b/1e3).toFixed(0)+' KB'; }
+</script>
+</body>
+</html>
